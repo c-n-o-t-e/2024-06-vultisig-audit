@@ -1,11 +1,11 @@
-// SPDX-License-Identifier: MIT 
+// SPDX-License-Identifier: MIT
 
 pragma solidity =0.7.6;
 pragma abicoder v2;
 
 import "forge-std/Test.sol";
-import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
-import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "../src/ILOManager.sol";
 import "../src/ILOPool.sol";
 
@@ -24,57 +24,52 @@ abstract contract IntegrationTestBase is Mock, Test {
 
     ILOManager iloManager;
     address projectId;
+    MaliciousToken public maliciousToken;
 
     function _setupBase() internal {
         uint256 mainnetFork = vm.createFork("https://rpc.ankr.com/eth", 20024256);
         vm.selectFork(mainnetFork);
 
         vm.startBroadcast(MANAGER_OWNER);
-        ILOPool iloPoolImplementation = new ILOPool{
-            salt: "salt_salt_salt"
-        }();
+        ILOPool iloPoolImplementation = new ILOPool{salt: "salt_salt_salt"}();
         // console.log("iloPoolImpl:");
         // console.log(address(iloPoolImplementation));
 
-        iloManager = new ILOManager{
-            salt: "salt_salt_salt"
-        }();
+        iloManager = new ILOManager{salt: "salt_salt_salt"}();
         // console.log("iloManager:");
         // console.log(address(iloManager));
 
-        SALE_TOKEN = address(new ERC20{
-            salt: "salt_salt_salt"
-        }("SALE TOKEN", "SALE"));
+        SALE_TOKEN = address(new ERC20{salt: "salt_salt_salt"}("SALE TOKEN", "SALE"));
         // console.log("sale token:");
         // console.log(SALE_TOKEN);
 
-
-
         iloManager.initialize(
-                MANAGER_OWNER, 
-                FEE_TAKER,
-                address(iloPoolImplementation),
-                UNIV3_FACTORY, 
-                WETH9, 
-                PLATFORM_FEE,
-                PERFORMANCE_FEE
-            );
+            MANAGER_OWNER,
+            FEE_TAKER,
+            address(iloPoolImplementation),
+            UNIV3_FACTORY,
+            WETH9,
+            PLATFORM_FEE,
+            PERFORMANCE_FEE
+        );
 
         vm.stopBroadcast();
 
         hoax(PROJECT_OWNER);
-        projectId =  iloManager.initProject(IILOManager.InitProjectParams({
-                    saleToken: mockProject().saleToken,
-                    raiseToken: mockProject().raiseToken,
-                    fee: mockProject().fee,
-                    initialPoolPriceX96: mockProject().initialPoolPriceX96, 
-                    launchTime: mockProject().launchTime
-                })
-            );
+        projectId = iloManager.initProject(
+            IILOManager.InitProjectParams({
+                saleToken: mockProject().saleToken,
+                raiseToken: mockProject().raiseToken,
+                fee: mockProject().fee,
+                initialPoolPriceX96: mockProject().initialPoolPriceX96,
+                launchTime: mockProject().launchTime
+            })
+        );
 
+        maliciousToken = new MaliciousToken(6);
     }
 
-    function _getInitPoolParams() internal view returns(IILOManager.InitPoolParams memory) {
+    function _getInitPoolParams() internal view returns (IILOManager.InitPoolParams memory) {
         return IILOManager.InitPoolParams({
             uniV3Pool: projectId,
             tickLower: MIN_TICK_500,
@@ -88,16 +83,40 @@ abstract contract IntegrationTestBase is Mock, Test {
         });
     }
 
-    function _initPool(address initializer, IILOManager.InitPoolParams memory params) internal returns(address iloPoolAddress) {
+    function _getInitPoolParamsForAudit() internal returns (IILOManager.InitPoolParams memory) {
+        hoax(PROJECT_OWNER);
+        address pID = iloManager.initProject(
+            IILOManager.InitProjectParams({
+                saleToken: mockProject().saleToken,
+                raiseToken: address(maliciousToken),
+                fee: mockProject().fee,
+                initialPoolPriceX96: mockProject().initialPoolPriceX96,
+                launchTime: mockProject().launchTime
+            })
+        );
+
+        return IILOManager.InitPoolParams({
+            uniV3Pool: pID,
+            tickLower: MIN_TICK_500,
+            tickUpper: -MIN_TICK_500,
+            hardCap: 100000 ether,
+            softCap: 80000 ether,
+            maxCapPerUser: 60000 ether,
+            start: SALE_START,
+            end: SALE_END,
+            vestingConfigs: _getVestingConfigs()
+        });
+    }
+
+    function _initPool(address initializer, IILOManager.InitPoolParams memory params)
+        internal
+        returns (address iloPoolAddress)
+    {
         vm.prank(initializer);
         iloPoolAddress = iloManager.initILOPool(params);
     }
 
     function _writeTokenBalance(address token, address who, uint256 amt) internal {
-        stdstore
-            .target(token)
-            .sig(IERC20(token).balanceOf.selector)
-            .with_key(who)
-            .checked_write(amt);
+        stdstore.target(token).sig(IERC20(token).balanceOf.selector).with_key(who).checked_write(amt);
     }
 }

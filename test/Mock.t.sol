@@ -1,8 +1,10 @@
-// SPDX-License-Identifier: MIT 
+// SPDX-License-Identifier: MIT
 
 pragma solidity =0.7.6;
 pragma abicoder v2;
+
 import "../src/ILOManager.sol";
+import "./MaliciousToken.sol";
 
 contract Mock {
     struct Project {
@@ -12,7 +14,6 @@ contract Mock {
         uint160 initialPoolPriceX96;
         uint64 launchTime;
     }
-
 
     address constant DUMMY_ADDRESS = 0x00000000000000000000000000000000DeaDBeef;
     address constant DEV_RECIPIENT = 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC; // anvil#3
@@ -33,13 +34,12 @@ contract Mock {
     uint64 constant VEST_START_1 = 1717779600; // Sat Jun 07 2024 17:00:00 GMT+0000
     uint64 constant VEST_END_1 = 1717866000; // Sun Jun 08 2024 17:00:00 GMT+0000
 
-    
-    function mockProject() internal view returns(Project memory) {
+    function mockProject() internal view returns (Project memory) {
         return Project({
-            saleToken: SALE_TOKEN, 
+            saleToken: SALE_TOKEN,
             raiseToken: USDC,
             fee: 500,
-            initialPoolPriceX96: 158456325028528675187087900672, 
+            initialPoolPriceX96: 158456325028528675187087900672,
             launchTime: LAUNCH_START // Wed Jun 05 2024 17:00:00 GMT+0000
         });
     }
@@ -47,38 +47,38 @@ contract Mock {
     function _getVestingConfigs() internal pure returns (IILOVest.VestingConfig[] memory vestingConfigs) {
         vestingConfigs = new IILOVest.VestingConfig[](4);
         vestingConfigs[0] = IILOVest.VestingConfig({
-                    shares: 2000, // 20%
-                    recipient: address(0),
-                    schedule: _getLinearVesting()
-            });
+            shares: 2000, // 20%
+            recipient: address(0),
+            schedule: _getLinearVesting()
+        });
         vestingConfigs[1] = IILOVest.VestingConfig({
-                    shares: 3000, // 30%
-                    recipient: TREASURY_RECIPIENT,
-                    schedule: _getLinearVesting()
-            });
+            shares: 3000, // 30%
+            recipient: TREASURY_RECIPIENT,
+            schedule: _getLinearVesting()
+        });
         vestingConfigs[2] = IILOVest.VestingConfig({
-                    shares: 2000, // 20%
-                    recipient: DEV_RECIPIENT,
-                    schedule: _getLinearVesting()
-            });
+            shares: 2000, // 20%
+            recipient: DEV_RECIPIENT,
+            schedule: _getLinearVesting()
+        });
         vestingConfigs[3] = IILOVest.VestingConfig({
-                    shares: 3000, // 30%
-                    recipient: LIQUIDITY_RECIPIENT,
-                    schedule: _getLinearVesting()
-            });
+            shares: 3000, // 30%
+            recipient: LIQUIDITY_RECIPIENT,
+            schedule: _getLinearVesting()
+        });
     }
 
     function _getLinearVesting() internal pure returns (IILOVest.LinearVest[] memory linearVestConfigs) {
         linearVestConfigs = new IILOVest.LinearVest[](2);
         linearVestConfigs[0] = IILOVest.LinearVest({
-                    shares: 3000, // 30% 
-                    start: VEST_START_0,
-                    end: VEST_END_0
-            });
+            shares: 3000, // 30%
+            start: VEST_START_0,
+            end: VEST_END_0
+        });
         linearVestConfigs[1] = IILOVest.LinearVest({
-                    shares: 7000, // 70% 
-                    start: VEST_START_1,
-                    end: VEST_END_1
-            });
+            shares: 7000, // 70%
+            start: VEST_START_1,
+            end: VEST_END_1
+        });
     }
 }
