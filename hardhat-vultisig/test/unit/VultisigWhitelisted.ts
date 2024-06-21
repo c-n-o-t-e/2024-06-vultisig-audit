@@ -84,12 +84,20 @@ describe("VultisigWhitelisted", function () {
             await vultisig.setWhitelistContract(whitelist);
             await whitelist.addWhitelistedAddress(owner.address);
 
-            expect(
-                await vultisig.transfer(otherAccount.address, amount)
-            ).to.changeTokenBalances(
-                vultisig,
-                [owner.address, otherAccount.address],
-                [-amount, amount]
+            // Note: otherAccount.address is not whitelisted
+
+            expect(await vultisig.balanceOf(otherAccount.address)).to.equal(0);
+            const ownerBalBeforeTx = await vultisig.balanceOf(owner.address);
+
+            // transfer to a non-whitelisted address
+            await vultisig.transfer(otherAccount.address, amount);
+
+            expect(await vultisig.balanceOf(owner.address)).to.equal(
+                ownerBalBeforeTx - amount
+            );
+
+            expect(await vultisig.balanceOf(otherAccount.address)).to.equal(
+                amount
             );
         });
 
